@@ -1,0 +1,10 @@
+Changes
+lib/GPS/Point.pm
+LICENSE
+Makefile.PL
+MANIFEST
+README
+t/001_load.t
+t/002_init.t
+Todo
+META.yml                                 Module meta-data (added by MakeMaker)
