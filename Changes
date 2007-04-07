@@ -1,6 +1,13 @@
 Revision history for Perl module GPS::Point
 
+0.04 Apr 07 2007
+    - test floats with Test::Number::Delta
+    - added skip tests
+    - newGPSD constructor
+    - documentation
+0.03 Apr 06 2007
+    - Added ecef, distance, GeoPoint methods
+0.02 Mar 29 2007
+    - First Version on CPAN
 0.01 Mon Feb 26 21:51:39 2007
     - original version; created by ExtUtils::ModuleMaker 0.47
-
-

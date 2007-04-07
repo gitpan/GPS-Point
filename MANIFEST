@@ -3,8 +3,9 @@ lib/GPS/Point.pm
 LICENSE
 Makefile.PL
 MANIFEST
+META.yml			Module meta-data (added by MakeMaker)
 README
 t/001_load.t
 t/002_init.t
+t/003_gpsd.t
 Todo
-META.yml                                 Module meta-data (added by MakeMaker)

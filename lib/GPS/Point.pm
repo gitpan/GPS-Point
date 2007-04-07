@@ -3,7 +3,7 @@ use strict;
 
 BEGIN {
     use vars qw($VERSION);
-    $VERSION     = '0.03';
+    $VERSION     = '0.04';
 }
 
 =head1 NAME
@@ -14,37 +14,39 @@ GPS::Point - Provides an object interface for a GPS point.
 
   use GPS::Point;
   $obj=GPS::Point->new(
-         time=>$time,       #float seconds from the unix epoch
-         lat=>$lat,         #signed degrees
-         lon=>$lon,         #signed degrees
-         alt=>$hae,         #meters above the WGS-84 ellipsoid
-         speed=>$speed,     #meters/second (over ground)
-         heading=>$heading, #degrees clockwise from North
-         climb=>$climb,     #meters/second
-         etime=>$etime,     #float seconds
-         ehorizontal=>$ehz, #float meters
-         evertical=$evert,  #float meters
-         espeed=>$espeed,   #meters/second
-         eheading=>$ehead,  #degrees
-         eclimb=>$eclimb,   #meters/second
-         mode=>$mode,       #GPS mode [Unknown=>undef(),None=>1,2D=>2,3D=>3]
-         tag=>$tag,         #Name of the GPS message for data
+         time        => $time,    #float seconds from the unix epoch
+         lat         => $lat,     #signed degrees
+         lon         => $lon,     #signed degrees
+         alt         => $hae,     #meters above the WGS-84 ellipsoid
+         speed       => $speed,   #meters/second (over ground)
+         heading     => $heading, #degrees clockwise from North
+         climb       => $climb,   #meters/second
+         etime       => $etime,   #float seconds
+         ehorizontal => $ehz,     #float meters
+         evertical   => $evert,   #float meters
+         espeed      => $espeed,  #meters/second
+         eheading    => $ehead,   #degrees
+         eclimb      => $eclimb,  #meters/second
+         mode        => $mode,    #GPS mode [?=>undef,None=>1,2D=>2,3D=>3]
+         tag         => $tag,     #Name of the GPS message for data
        ); 
+
   print $point->latlon. "\n";      #use a "." here to force latlon to a scalar
   my ($x,$y,$z)=$point->ecef;               #if Geo::ECEF is available
   my $GeoPoint=$point->GeoPoint;            #if Geo::Point is available
+  my @distance=$point->distance($point2);   #if Geo::Inverse is available
   my $distance=$point->distance($point2);   #if Geo::Inverse is available
+  my $obj=GPS::Point->newGPSD($GPSD_O_line);#e.g. GPSD,O=....
 
 =head1 SYNOPSIS TODO
 
-  my $obj=GPS::Point->newGPSD($GPSD_O_line);#e.g. GPSD,O=....
   my $obj=GPS::Point->newNMEA($NMEA_lines); #e.g. GGA+GSA+RMC
 
 =head1 DESCRIPTION
 
 This is a re-write of Net::GPSD::Point that is more portable.
 
-GPS::Point - Provides an object interface for a GPS fix (e.g. Position, Velocity and Time).  (Note: Please use Geo::Point, if you want 2D or projection support.)
+GPS::Point - Provides an object interface for a GPS fix (e.g. Position, Velocity and Time).  (Note: Please use Geo::Point, if you want 2D or projection support.See GeoPoint method)
 
 =head1 USAGE
 
@@ -65,6 +67,21 @@ sub new {
   return $self;
 }
 
+=head2 newGPSD
+
+  my $obj=GPS::Point->newGPSD($GPSD_O_line);#e.g. GPSD,O=....
+
+=cut
+
+sub newGPSD {
+  my $this = shift();
+  my $class = ref($this) || $this;
+  my $self = {};
+  bless $self, $class;
+  $self->initializeGPSD(@_);
+  return $self;
+}
+
 =head1 METHODS
 
 =cut
@@ -74,9 +91,38 @@ sub initialize {
   %$self=@_;
 }
 
+sub initializeGPSD {
+  my $self=shift();
+  my $line=shift(); #GPSD,O=MID2 1175911006.190 ? 53.527185 -113.530093 705.51 4.00 3.49 0.0000 0.074 0.101 ? 8.00 6.99 3
+  my @line=split(/,/, $line);
+  warn("Warning: Expected GPSD formatted line.") unless $line[0] eq "GPSD";
+  my $obj=undef();
+  foreach (@line) { #I pull the last one if O=?,O=?,...
+    my @rpt=split(/=/, $_);
+    if ($rpt[0] eq 'O') {
+      my @data=map {q2u($_)} split(/\s+/, $rpt[1]);
+      %$self=(tag         => $data[ 0],
+              time        => $data[ 1],
+              etime       => $data[ 2],
+              lat         => $data[ 3],
+              lon         => $data[ 4],
+              alt         => $data[ 5],
+              ehorizontal => $data[ 6],
+              evertical   => $data[ 7],
+              heading     => $data[ 8],
+              speed       => $data[ 9],
+              climb       => $data[10],
+              eheading    => $data[11],
+              espeed      => $data[12],
+              eclimb      => $data[13],
+              mode        => $data[14]);
+    }
+  } 
+}
+
 =head2 time
 
-Sets or returns time
+Sets or returns seconds since the Unix epoch, UTC (float, seconds)
 
   print $obj->time, "\n";
 
@@ -90,7 +136,7 @@ sub time {
 
 =head2 lat
 
-Sets or returns lat
+Sets or returns Latitude (float, degrees)
 
   print $obj->lat, "\n";
 
@@ -104,7 +150,7 @@ sub lat {
 
 =head2 lon
 
-Sets or returns lon
+Sets or returns Longitude (float, degrees)
 
   print $obj->lon, "\n";
 
@@ -118,7 +164,7 @@ sub lon {
 
 =head2 alt
 
-Sets or returns alt
+Sets or returns Altitude (float, meters) 
 
   print $obj->alt, "\n";
 
@@ -132,7 +178,7 @@ sub alt {
 
 =head2 speed
 
-Sets or returns speed
+Sets or returns speed (float, meters/sec)
 
   print $obj->speed, "\n";
 
@@ -146,7 +192,7 @@ sub speed {
 
 =head2 heading
 
-Sets or returns heading
+Sets or returns heading (float, degrees)
 
   print $obj->heading, "\n";
 
@@ -160,7 +206,7 @@ sub heading {
 
 =head2 climb
 
-Sets or returns climb
+Sets or returns vertical velocity (float, meters/sec)
 
   print $obj->climb, "\n";
 
@@ -174,7 +220,7 @@ sub climb {
 
 =head2 etime
 
-Sets or returns etime
+Sets or returns estimated timestamp error (float, seconds, 95% confidence)
 
   print $obj->etime, "\n";
 
@@ -188,7 +234,7 @@ sub etime {
 
 =head2 ehorizontal
 
-Sets or returns ehorizontal
+Sets or returns horizontal error estimate (float, meters)
 
   print $obj->ehorizontal, "\n";
 
@@ -202,7 +248,7 @@ sub ehorizontal {
 
 =head2 evertical
 
-Sets or returns evertical
+Sets or returns vertical error estimate (float, meters)
 
   print $obj->evertical, "\n";
 
@@ -216,7 +262,7 @@ sub evertical {
 
 =head2 espeed
 
-Sets or returns espeed
+Sets or returns error estimate for speed (float, meters/sec, 95% confidence)
 
   print $obj->espeed, "\n";
 
@@ -230,7 +276,7 @@ sub espeed {
 
 =head2 eheading
 
-Sets or returns eheading
+Sets or returns error estimate for course (float, degrees, 95% confidence)
 
   print $obj->eheading, "\n";
 
@@ -244,7 +290,7 @@ sub eheading {
 
 =head2 eclimb
 
-Sets or returns eclimb
+Sets or returns Estimated error for climb/sink (float, meters/sec, 95% confidence)
 
   print $obj->eclimb, "\n";
 
@@ -258,7 +304,7 @@ sub eclimb {
 
 =head2 mode
 
-Sets or returns GPS fix mode
+Sets or returns the NMEA mode (integer, undef=no mode value yet seen, 1=no fix, 2=2D, 3=3D)
 
   print $obj->mode, "\n";
 
@@ -272,7 +318,7 @@ sub mode {
 
 =head2 tag
 
-Sets or returns tag
+Sets or returns a tag identifying the last sentence received. For NMEA devices this is just the NMEA sentence name; the talker-ID portion may be useful for distinguishing among results produced by different NMEA talkers in the same wire. (string)
 
   print $obj->tag, "\n";
 
@@ -355,15 +401,38 @@ sub distance {
   } else {
     my $obj = Geo::Inverse->new(); # default "WGS84"
     my $pt2=shift();
-    my ($lat1,$lon1,$lat2,$lon2)=($self->lat, $self->lon, $pt2->lat, $pt2->lon);
-    my ($faz, $baz, $dist)=$obj->inverse($lat1,$lon1,$lat2,$lon2);
-    return wantarray ? ($faz, $baz, $dist) : $dist;
+    my $lat1=$self->lat;
+    my $lon1=$self->lon;
+    my $lat2;
+    my $lon2;
+    if (ref($pt2) eq "GPS::Point") {
+      $lat2=$pt2->lat;
+      $lon2=$pt2->lon;
+    } elsif (ref($pt2) eq "Geo::Point") {
+      $lat2=$pt2->lat;
+      $lon2=$pt2->long;
+    } elsif (!ref($pt2)) {
+      $lat2=$pt2;
+      $lon2=shift();
+    }
+    if (length($lat2) && length($lon2)) {
+      return $obj->inverse($lat1,$lon1,$lat2,$lon2);
+    } else {
+      die(qq{Error: Cannot calculate distance with "$lat2" and "$lon2".});
+    }
   }
+}
+
+sub q2u {
+  my $a=shift();
+  return $a eq '?' ? undef() : $a;
 }
 
 =head1 BUGS
 
 =head1 SUPPORT
+
+Try GPSD-DEV email list
 
 =head1 AUTHOR
 
@@ -380,7 +449,6 @@ it and/or modify it under the same terms as Perl itself.
 
 The full text of the license can be found in the
 LICENSE file included with this module.
-
 
 =head1 SEE ALSO
 
