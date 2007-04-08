@@ -3,7 +3,7 @@ use strict;
 
 BEGIN {
     use vars qw($VERSION);
-    $VERSION     = '0.05';
+    $VERSION     = '0.06';
 }
 
 =head1 NAME
@@ -38,13 +38,13 @@ This is a re-write of L<Net::GPSD::Point> that is more portable.
 
 GPS::Point - Provides an object interface for a GPS fix (e.g. Position, Velocity and Time).
 
-  Note: Please use L<Geo::Point>, if you want 2D or projection support.
+  Note: Please use Geo::Point, if you want 2D or projection support.
 
 =head1 USAGE
 
-  print $point->latlon. "\n";      #use a "." here to force latlon to a scalar
+  print $point->latlon. "\n";               #use a "." here to force latlon to scalar context
   my ($x,$y,$z)=$point->ecef;               #if Geo::ECEF is available
-  my $GeoPoint=$point->GeoPoint;            #if Geo::Point is available
+  my $GeoPointObject=$point->GeoPoint;      #if Geo::Point is available
   my @distance=$point->distance($point2);   #if Geo::Inverse is available
   my $distance=$point->distance($point2);   #if Geo::Inverse->VERSION >=0.05
 
@@ -199,7 +199,7 @@ sub speed {
   return $self->{'speed'};
 }
 
-=head2 heading
+=head2 heading, bearing
 
 Sets or returns heading (float, degrees)
 
@@ -315,7 +315,7 @@ sub eclimb {
 
 =head2 mode
 
-Sets or returns the NMEA mode (integer, undef=no mode value yet seen, 1=no fix, 2=2D, 3=3D)
+Sets or returns the NMEA mode (integer; undef=>no mode value yet seen, 1=>no fix, 2=>2D, 3=>3D)
 
   print $obj->mode, "\n";
 
@@ -343,6 +343,10 @@ sub tag {
 
 =head2 fix
 
+Returns either 1 or 0 based upon if the GPS point is from a valid fix or not.
+
+  print $obj->fix, "\n";
+
 =cut
 
 sub fix {
@@ -351,7 +355,7 @@ sub fix {
 
 }
 
-=head2 latlon
+=head2 latlon, latlong
 
 Returns Latitude, Longitude as an array in array context and as a space joined string in scalar context
 
@@ -359,6 +363,8 @@ Returns Latitude, Longitude as an array in array context and as a space joined s
   my $latlon=$point->latlon;
 
 =cut
+
+*latlong=\&latlon;
 
 sub latlon {
   my $self = shift();
@@ -470,7 +476,7 @@ LICENSE file included with this module.
 
 =head1 SEE ALSO
 
-L<Geo::Point>, L<Net::GPSD::Point>, L<Geo::Distance>, L<Geo::ECEF>, L<Geo::Functions>
+L<Geo::Point>, L<Net::GPSD::Point>, L<Geo::ECEF>, L<Geo::Functions>, L<Geo::Inverse>, L<Geo::Distance>
 
 =cut
 

@@ -1,5 +1,11 @@
 Revision history for Perl module GPS::Point
 
+0.06 Apr 08 2007
+    - Documentation
+0.05 Apr 07 2007
+    - Documentation
+    - Added method aliases e.g long, latitude...
+    - Added fix method
 0.04 Apr 07 2007
     - test floats with Test::Number::Delta
     - added skip tests
