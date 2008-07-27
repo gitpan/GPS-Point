@@ -2,9 +2,9 @@
 
 # t/001_load.t - check module loading and create testing directory
 
-use Test::More tests => 24;
+use Test::More tests => 34;
 use Test::Number::Delta;
-use blib;
+use strict;
 
 BEGIN { use_ok( 'GPS::Point' ); }
 
@@ -81,3 +81,30 @@ SKIP: {
   delta_ok($xyz[2], 3992317.02275173, "ecef z" );
 }
 
+SKIP: {
+  eval { require Geo::Inverse };
+  skip "Geo::Inverse not installed", 8 if $@;
+  my $lat=39.1; my $lon=-77.1;
+  my $pt=bless {lat=>$lat, lon=>$lon}, "My::Point";
+  isa_ok($pt, "My::Point");
+  my $dist=$pt1->distance($pt);
+  delta_ok( $dist, "14077.7169524386", "distance scalar with another point");
+  $pt=bless {latitude=>$lat, longitude=>$lon}, "My::Point";
+  isa_ok($pt, "My::Point");
+  $dist=$pt1->distance($pt);
+  delta_ok( $dist, "14077.7169524386", "distance scalar with another point");
+  $pt=bless {lat=>$lat, long=>$lon}, "MyPoint";
+  isa_ok($pt, "MyPoint");
+  $dist=$pt1->distance($pt);
+  delta_ok( $dist, "14077.7169524386", "distance scalar with another point");
+  $pt={lat=>$lat, long=>$lon};
+  $dist=$pt1->distance($pt);
+  delta_ok( $dist, "14077.7169524386", "distance scalar with another point");
+  $pt=[$lat, $lon];
+  $dist=$pt1->distance($pt);
+  delta_ok( $dist, "14077.7169524386", "distance scalar with another point");
+  $pt=bless [$lat, $lon], "MyPointArray";
+  isa_ok($pt, "MyPointArray");
+  $dist=$pt1->distance($pt);
+  delta_ok( $dist, "14077.7169524386", "distance scalar with another point");
+}

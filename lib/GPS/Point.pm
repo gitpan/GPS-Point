@@ -1,9 +1,10 @@
 package GPS::Point;
 use strict;
+use Scalar::Util qw{reftype};
 
 BEGIN {
     use vars qw($VERSION);
-    $VERSION     = '0.06';
+    $VERSION     = '0.07';
 }
 
 =head1 NAME
@@ -432,14 +433,25 @@ sub distance {
     my $lon1=$self->lon;
     my $lat2;
     my $lon2;
-    if (ref($pt2) eq "GPS::Point" or ref($pt2) eq "Geo::Point") {
-      $lat2=$pt2->latitude;
-      $lon2=$pt2->longitude;
-    } elsif (!ref($pt2)) {
+    #printf "Ref %s, Type %s\n", ref($pt2), reftype($pt2);
+    if (!ref($pt2)) {
       $lat2=$pt2;
       $lon2=shift();
+    } elsif (ref($pt2) eq "Geo::Point") {
+      $lat2=$pt2->latitude;
+      $lon2=$pt2->longitude;
+    } elsif (ref($pt2) eq "GPS::Point") {
+      $lat2=$pt2->lat;
+      $lon2=$pt2->lon;
+    } elsif (reftype($pt2) eq "HASH") {
+      $lat2=$pt2->{'lat'}||$pt2->{'latitude'};
+      $lon2=$pt2->{'lon'}||$pt2->{'long'}||$pt2->{'longitude'};
+    } elsif (reftype($pt2) eq "ARRAY") {
+      $lat2=$pt2->[0];
+      $lon2=$pt2->[1];
     }
-    if (length($lat2) && length($lon2)) {
+    #printf "Lat %s, Lon %s\n", $lat2, $lon2;
+    if (defined($lat2) && length($lat2) and defined($lon2) && length($lon2)) {
       return $obj->inverse($lat1,$lon1,$lat2,$lon2);
     } else {
       die(qq{Error: Cannot calculate distance with "$lat2" and "$lon2".});

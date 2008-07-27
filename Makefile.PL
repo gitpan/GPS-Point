@@ -3,13 +3,16 @@ use ExtUtils::MakeMaker;
 # the contents of the Makefile that is written.
 WriteMakefile(
     NAME         => 'GPS::Point',
-    VERSION_FROM => 'lib/GPS/Point.pm', # finds \$VERSION
+    VERSION_FROM => 'lib/GPS/Point.pm',
     AUTHOR       => 'Michael R. Davis (account=>perl,tld=>com,domain=>michaelrdavis)',
-    ABSTRACT     => 'Provides an object interface for a GPS point.',
+    ABSTRACT_FROM=> 'lib/GPS/Point.pm',
+    LICENSE      => 'perl',
     PREREQ_PM    => {
-                     'Test::More' => 0.44,
+                     'Test::Simple'        => 0.44,
+                     'Test::More'          => 0.44,
                      'Test::Number::Delta' => 0,
-                     'strict' => 0,
-                     'vars' => 0,
+                     'strict'              => 0,
+                     'vars'                => 0,
+                     'Scalar::Util'        => 1.02,
                     },
 );
