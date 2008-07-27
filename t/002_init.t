@@ -2,11 +2,12 @@
 
 # t/001_load.t - check module loading and create testing directory
 
-use Test::More tests => 34;
+use Test::More tests => 37;
 use Test::Number::Delta;
 use strict;
 
 BEGIN { use_ok( 'GPS::Point' ); }
+BEGIN { use_ok( 'Geo::Inverse' ); }
 
 my $pt1 = GPS::Point->new(lat=>39,
                           lon=>-77);
@@ -22,27 +23,20 @@ my $pt2 = GPS::Point->new(lat=>39.1,
                           lon=>-77.1);
 isa_ok ($pt2, 'GPS::Point');
 
-SKIP: {
-  eval { require Geo::Inverse };
-  skip "Geo::Inverse not installed", 8 if $@;
+my @dist=$pt1->distance($pt2);
+delta_ok($dist[0], 322.08605713267, "faz");
+delta_ok($dist[1], 142.02305726502, "baz");
+delta_ok($dist[2], 14077.7169524386, "distance");
 
-  my @dist=$pt1->distance($pt2);
-  delta_ok($dist[0], 322.08605713267, "faz");
-  delta_ok($dist[1], 142.02305726502, "baz");
-  delta_ok($dist[2], 14077.7169524386, "distance");
+@dist=$pt1->distance($pt2->lat, $pt2->lon);
+delta_ok($dist[0], 322.08605713267, "faz");
+delta_ok($dist[1], 142.02305726502, "baz");
+delta_ok($dist[2], 14077.7169524386, "distance");
 
-  @dist=$pt1->distance($pt2->lat, $pt2->lon);
-  delta_ok($dist[0], 322.08605713267, "faz");
-  delta_ok($dist[1], 142.02305726502, "baz");
-  delta_ok($dist[2], 14077.7169524386, "distance");
-  SKIP: {
-    skip "Geo::Inverse->VERSION < 0.05", 2 if Geo::Inverse->VERSION < 0.05;
-    my $dist=$pt1->distance($pt2);
-    delta_ok( $dist, "14077.7169524386", "distance scalar with GPS::Point");
-    $dist=$pt1->distance($pt2->lat, $pt2->lon);
-    delta_ok( $dist, "14077.7169524386", "distance scalar with Lat, Lon");
-  }
-}
+my $dist=$pt1->distance($pt2);
+delta_ok( $dist, "14077.7169524386", "distance scalar with GPS::Point");
+$dist=$pt1->distance($pt2->lat, $pt2->lon);
+delta_ok( $dist, "14077.7169524386", "distance scalar with Lat, Lon");
 
 SKIP: {
   eval { require Geo::Point };
@@ -53,26 +47,17 @@ SKIP: {
   is( $pt->lat,   "39", "GeoPoint->lat");
   is( $pt->long, "-77", "GeoPoint->long");
 
-  SKIP: {
-    eval { require Geo::Inverse };
-  
-    skip "Geo::Inverse not installed", 4 if $@;
-    my $pt3=$pt2->GeoPoint;
-    my @dist=$pt1->distance($pt3);
-    delta_ok($dist[0], 322.08605713267, "faz");
-    delta_ok($dist[1], 142.02305726502, "baz");
-    delta_ok($dist[2], 14077.7169524386, "distance array context");
-    SKIP: {
-      skip "Geo::Inverse->VERSION < 0.05", 1 if Geo::Inverse->VERSION < 0.05;
-      my $dist=$pt1->distance($pt3);
-      delta_ok( $dist, "14077.7169524386", "distance scalar with Geo::Point");
-    }
-  }
+  my $pt3=$pt2->GeoPoint;
+  my @dist=$pt1->distance($pt3);
+  delta_ok($dist[0], 322.08605713267, "faz");
+  delta_ok($dist[1], 142.02305726502, "baz");
+  delta_ok($dist[2], 14077.7169524386, "distance array context");
+  my $dist=$pt1->distance($pt3);
+  delta_ok( $dist, "14077.7169524386", "distance scalar with Geo::Point");
 }
 
 SKIP: {
   eval { require Geo::ECEF };
-
   skip "Geo::ECEF not installed", 3 if $@;
 
   my @xyz=$pt1->ecef;
@@ -81,30 +66,28 @@ SKIP: {
   delta_ok($xyz[2], 3992317.02275173, "ecef z" );
 }
 
-SKIP: {
-  eval { require Geo::Inverse };
-  skip "Geo::Inverse not installed", 8 if $@;
-  my $lat=39.1; my $lon=-77.1;
-  my $pt=bless {lat=>$lat, lon=>$lon}, "My::Point";
-  isa_ok($pt, "My::Point");
-  my $dist=$pt1->distance($pt);
-  delta_ok( $dist, "14077.7169524386", "distance scalar with another point");
-  $pt=bless {latitude=>$lat, longitude=>$lon}, "My::Point";
-  isa_ok($pt, "My::Point");
-  $dist=$pt1->distance($pt);
-  delta_ok( $dist, "14077.7169524386", "distance scalar with another point");
-  $pt=bless {lat=>$lat, long=>$lon}, "MyPoint";
-  isa_ok($pt, "MyPoint");
-  $dist=$pt1->distance($pt);
-  delta_ok( $dist, "14077.7169524386", "distance scalar with another point");
-  $pt={lat=>$lat, long=>$lon};
-  $dist=$pt1->distance($pt);
-  delta_ok( $dist, "14077.7169524386", "distance scalar with another point");
-  $pt=[$lat, $lon];
-  $dist=$pt1->distance($pt);
-  delta_ok( $dist, "14077.7169524386", "distance scalar with another point");
-  $pt=bless [$lat, $lon], "MyPointArray";
-  isa_ok($pt, "MyPointArray");
-  $dist=$pt1->distance($pt);
-  delta_ok( $dist, "14077.7169524386", "distance scalar with another point");
-}
+my $lat=39.1; my $lon=-77.1;
+my $pt=bless {lat=>$lat, lon=>$lon}, "My::Point::Foo";
+isa_ok($pt, "My::Point::Foo");
+$dist=$pt1->distance($pt);
+delta_ok( $dist, "14077.7169524386", "distance scalar with blessed HASH point");
+$pt=bless {latitude=>$lat, longitude=>$lon}, "My::Point";
+isa_ok($pt, "My::Point");
+$dist=$pt1->distance($pt);
+delta_ok( $dist, "14077.7169524386", "distance scalar with blessed HASH point");
+$pt=bless {lat=>$lat, long=>$lon}, "MyPoint";
+isa_ok($pt, "MyPoint");
+$dist=$pt1->distance($pt);
+delta_ok( $dist, "14077.7169524386", "distance scalar with blessed HASH point");
+$pt={lat=>$lat, long=>$lon};
+isa_ok($pt, "HASH");
+$dist=$pt1->distance($pt);
+delta_ok( $dist, "14077.7169524386", "distance scalar with HASH point");
+$pt=[$lat, $lon];
+isa_ok($pt, "ARRAY");
+$dist=$pt1->distance($pt);
+delta_ok( $dist, "14077.7169524386", "distance scalar with ARRAY point");
+$pt=bless [$lat, $lon], "MyPointArray";
+isa_ok($pt, "MyPointArray");
+$dist=$pt1->distance($pt);
+delta_ok( $dist, "14077.7169524386", "distance scalar with blessed ARRAY point");

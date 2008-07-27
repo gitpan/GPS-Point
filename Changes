@@ -1,5 +1,9 @@
 Revision history for Perl module GPS::Point
 
+0.08 2008-07-28
+    - Require Geo::Inverse to pass tests
+    - Changed license to BSD from perl
+    - Fixed test issue
 0.07 2008-07-27
     - updated distance method to support multiple point formats.
 0.06 Apr 08 2007

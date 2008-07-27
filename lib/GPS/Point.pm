@@ -4,7 +4,7 @@ use Scalar::Util qw{reftype};
 
 BEGIN {
     use vars qw($VERSION);
-    $VERSION     = '0.07';
+    $VERSION     = '0.08';
 }
 
 =head1 NAME
@@ -480,15 +480,16 @@ Try GPSD-DEV email list
 
 =head1 COPYRIGHT
 
-This program is free software; you can redistribute
-it and/or modify it under the same terms as Perl itself.
+This program is free software licensed under the...
+
+	The BSD License
 
 The full text of the license can be found in the
 LICENSE file included with this module.
 
 =head1 SEE ALSO
 
-L<Geo::Point>, L<Net::GPSD::Point>, L<Geo::ECEF>, L<Geo::Functions>, L<Geo::Inverse>, L<Geo::Distance>
+L<Geo::Point>, L<Net::GPSD>, L<Net::GPSD::Point>, L<Geo::ECEF>, L<Geo::Functions>, L<Geo::Inverse>, L<Geo::Distance>, L<Geo::Ellipsoids>
 
 =cut
 

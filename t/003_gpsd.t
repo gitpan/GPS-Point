@@ -1,9 +1,6 @@
 # -*- perl -*-
 
-# t/001_load.t - check module loading and create testing directory
-
 use Test::More tests => 23;
-use blib;
 
 BEGIN { use_ok( 'GPS::Point' ); }
 
