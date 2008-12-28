@@ -12,6 +12,5 @@ WriteMakefile(
                    'strict'              => 0,
                    'vars'                => 0,
                    'Scalar::Util'        => 1.02,
-                   'Geo::Inverse'        => 0.05,
                   },
 );

@@ -2,10 +2,7 @@ package GPS::Point;
 use strict;
 use Scalar::Util qw{reftype};
 
-BEGIN {
-    use vars qw($VERSION);
-    $VERSION     = '0.08';
-}
+our $VERSION = '0.09';
 
 =head1 NAME
 
@@ -414,7 +411,7 @@ sub GeoPoint {
 
 =head2 distance
 
-Returns distance if L<Geo::Inverse> is installed. The argument can be a L<GPS::Point>, L<Geo::Point> or a Lat, Lon scalar pair.
+Returns distance. The argument can be a L<GPS::Point>, L<Geo::Point>, {lat=>$lat,lon=>$lon} (can be blessed), [$lat, $lon] (can be blessed) or a Lat, Lon scalar pair.
 
   my ($faz, $baz, $dist) = $point->distance($pt2); #Array context
   my $dist = $point->distance($lat, $lon);  #if Geo::Inverse->VERSION >=0.05 
@@ -422,40 +419,69 @@ Returns distance if L<Geo::Inverse> is installed. The argument can be a L<GPS::P
 =cut
 
 sub distance {
-  my $self = shift();
-  eval 'use Geo::Inverse';
-  if ($@) {
-    die("Error: The distance method requires Geo::Inverse");
-  } else {
-    my $obj = Geo::Inverse->new(); # default "WGS84"
-    my $pt2=shift();
-    my $lat1=$self->lat;
-    my $lon1=$self->lon;
-    my $lat2;
-    my $lon2;
-    #printf "Ref %s, Type %s\n", ref($pt2), reftype($pt2);
-    if (!ref($pt2)) {
-      $lat2=$pt2;
-      $lon2=shift();
-    } elsif (ref($pt2) eq "Geo::Point") {
-      $lat2=$pt2->latitude;
-      $lon2=$pt2->longitude;
-    } elsif (ref($pt2) eq "GPS::Point") {
-      $lat2=$pt2->lat;
-      $lon2=$pt2->lon;
-    } elsif (reftype($pt2) eq "HASH") {
-      $lat2=$pt2->{'lat'}||$pt2->{'latitude'};
-      $lon2=$pt2->{'lon'}||$pt2->{'long'}||$pt2->{'longitude'};
-    } elsif (reftype($pt2) eq "ARRAY") {
-      $lat2=$pt2->[0];
-      $lon2=$pt2->[1];
-    }
-    #printf "Lat %s, Lon %s\n", $lat2, $lon2;
-    if (defined($lat2) && length($lat2) and defined($lon2) && length($lon2)) {
-      return $obj->inverse($lat1,$lon1,$lat2,$lon2);
+  my $self=shift;
+  my $pt2=shift();
+  my $lat1=$self->lat;
+  my $lon1=$self->lon;
+  my $lat2;
+  my $lon2;
+  #printf "Ref %s, Type %s\n", ref($pt2), reftype($pt2);
+  if (!ref($pt2)) {
+    $lat2=$pt2;
+    $lon2=shift();
+  } elsif (ref($pt2) eq "Geo::Point") {
+    $lat2=$pt2->latitude;
+    $lon2=$pt2->longitude;
+  } elsif (ref($pt2) eq "GPS::Point") {
+    $lat2=$pt2->lat;
+    $lon2=$pt2->lon;
+  } elsif (reftype($pt2) eq "HASH") {
+    $lat2=$pt2->{'lat'}||$pt2->{'latitude'};
+    $lon2=$pt2->{'lon'}||$pt2->{'long'}||$pt2->{'longitude'};
+  } elsif (reftype($pt2) eq "ARRAY") {
+    $lat2=$pt2->[0];
+    $lon2=$pt2->[1];
+  }
+  #printf "Lat %s, Lon %s\n", $lat2, $lon2;
+  if (defined($lat2) && length($lat2) and defined($lon2) && length($lon2)) {
+    eval 'use Geo::Inverse';
+    if ($@) {
+      die("Error: The distance method requires Geo::Inverse");
     } else {
-      die(qq{Error: Cannot calculate distance with "$lat2" and "$lon2".});
+      my $gi=Geo::Inverse->new();
+      return $gi->inverse($lat1,$lon1,$lat2,$lon2);
     }
+  } else {
+    die(qq{Error: Cannot calculate distance with "$lat2" and "$lon2".});
+  }
+}
+
+=head2 track
+
+Returns a point object at the predicted location in time seconds assuming constant velocity. Using L<Geo::Forward> calculation.
+
+ my $new_point=$point->track($seconds);
+
+=cut
+
+sub track {
+  my $self=shift();
+  my $time=shift()||0;
+  eval 'use Geo::Forward';
+  if ($@) {
+    die("Error: The track method requires Geo::Forward");
+  } else {
+    my $gf=Geo::Forward->new;
+    my $dist=($self->speed||0) * $time;   #meters
+    my ($lat1,$lon1,$faz)=($self->lat, $self->lon, $self->heading||0);
+    my ($lat2,$lon2,$baz) = $gf->forward($lat1,$lon1,$faz,$dist);
+
+    my $p2=GPS::Point->new($self);
+    $p2->lat($lat2);
+    $p2->lon($lon2);
+    $p2->time($self->time + $time);
+    $p2->heading($baz-180);
+    return $p2;
   }
 }
 
@@ -489,7 +515,7 @@ LICENSE file included with this module.
 
 =head1 SEE ALSO
 
-L<Geo::Point>, L<Net::GPSD>, L<Net::GPSD::Point>, L<Geo::ECEF>, L<Geo::Functions>, L<Geo::Inverse>, L<Geo::Distance>, L<Geo::Ellipsoids>
+L<Geo::Point>, L<Net::GPSD>, L<Net::GPSD::Point>, L<Geo::ECEF>, L<Geo::Functions>, L<Geo::Inverse>, L<Geo::Distance>, L<Geo::Ellipsoids>, L<Geo::Forward>
 
 =cut
 
