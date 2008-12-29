@@ -2,7 +2,7 @@ package GPS::Point;
 use strict;
 use Scalar::Util qw{reftype};
 
-our $VERSION = '0.09';
+our $VERSION = '0.10';
 
 =head1 NAME
 
@@ -32,7 +32,7 @@ GPS::Point - Provides an object interface for a GPS point.
 
 =head1 DESCRIPTION
 
-This is a re-write of L<Net::GPSD::Point> that is more portable.
+This is a re-write of L<Net::GPSD::Point> with a goal of being more re-usable.
 
 GPS::Point - Provides an object interface for a GPS fix (e.g. Position, Velocity and Time).
 
@@ -40,7 +40,7 @@ GPS::Point - Provides an object interface for a GPS fix (e.g. Position, Velocity
 
 =head1 USAGE
 
-  print $point->latlon. "\n";               #use a "." here to force latlon to scalar context
+  print scalar($point->latlon), "\n";       #latlon in scalar context
   my ($x,$y,$z)=$point->ecef;               #if Geo::ECEF is available
   my $GeoPointObject=$point->GeoPoint;      #if Geo::Point is available
   my @distance=$point->distance($point2);   #if Geo::Inverse is available
@@ -82,9 +82,27 @@ sub newGPSD {
   return $self;
 }
 
-=head1 METHODS
+=head2 newMulti
+
+Constructs a GPS::Point from a Multitude of arguments. Arguments can be a L<GPS::Point>, L<Geo::Point>, {lat=>$lat,lon=>$lon} (can be blessed), [$lat, $lon] (can be blessed) or a ($lat, $lon) pair. 
+
+  my $point=GPS::Point->newMulti($lat, $lon);     #only support lat and lon
+  my $point=GPS::Point->newMulti([$lat, $lon]);   #only support lat and lon
+  my $point=GPS::Point->newMulti({lat=>$lat, lon=>$lon});
+  my $point=GPS::Point->newMulti({latitude=>$lat, longtude=>$lon});
+  my $point=GPS::Point->newMulti(GPS::Point->new(lat=>$lat, lon=>$lon));
+  my $point=GPS::Point->newMulti(Geo::Point->new(lat=>$lat, long=>$lon, proj=>'wgs84'));
 
 =cut
+
+sub newMulti {
+  my $this = shift();
+  my $class = ref($this) || $this;
+  my $self = {};
+  bless $self, $class;
+  $self->initializeMulti(@_);
+  return $self;
+}
 
 sub initialize {
   my $self = shift();
@@ -100,7 +118,7 @@ sub initializeGPSD {
   foreach (@line) { #I pull the last one if O=?,O=?,...
     my @rpt=split(/=/, $_);
     if ($rpt[0] eq 'O') {
-      my @data=map {q2u($_)} split(/\s+/, $rpt[1]);
+      my @data=map {&q2u($_)} split(/\s+/, $rpt[1]);
       %$self=(tag         => $data[ 0],
               time        => $data[ 1],
               etime       => $data[ 2],
@@ -119,6 +137,50 @@ sub initializeGPSD {
     }
   } 
 }
+
+sub initializeMulti {
+  my $self=shift;
+  my $point=shift;
+  if (!ref($point)) {
+    $self->{'lat'}=$point;
+    $self->{'lon'}=shift();
+  } elsif (ref($point) eq "Geo::Point") {
+    $point=$point->in('wgs84') unless $point->proj eq "wgs84";
+    $self->{'lat'}=$point->latitude;
+    $self->{'lon'}=$point->longitude;
+  } elsif (ref($point) eq "GPS::Point") {
+    %$self=%$point;
+  } elsif (ref($point) eq "Net::GPSD::Point") {
+    $self->{'time'}=$point->time;
+    $self->{'lat'}=$point->latitude;
+    $self->{'lon'}=$point->longitude;
+    $self->{'alt'}=$point->altitude;
+    $self->{'speed'}=$point->speed;
+    $self->{'heading'}=$point->heading;
+    $self->{'climb'}=$point->climb;
+    $self->{'etime'}=$point->errortime;
+    $self->{'ehorizontal'}=$point->errorhorizontal;
+    $self->{'evertical'}=$point->errorvertical;
+    $self->{'espeed'}=$point->errorspeed;
+    $self->{'eheading'}=$point->errorheading;
+    $self->{'eclimb'}=$point->errorclimb;
+    $self->{'mode'}=$point->mode;
+    $self->{'tag'}=$point->tag;
+  } elsif (reftype($point) eq "HASH") {
+    %$self=%$point;
+    $self->{'lat'}=$point->{'lat'}||$point->{'latitude'};
+    $self->{'lon'}=$point->{'lon'}||$point->{'long'}||$point->{'longitude'};
+    delete $self->{'latitude'} if exists $self->{'latitude'};
+    delete $self->{'longitude'} if exists $self->{'longitude'};
+    delete $self->{'long'} if exists $self->{'long'};
+  } elsif (reftype($point) eq "ARRAY") {
+    $self->{'lat'}=$point->[0];
+    $self->{'lon'}=$point->[1];
+  }
+  return $self;
+}
+
+=head1 METHODS (BASE)
 
 =head2 time
 
@@ -339,11 +401,15 @@ sub tag {
   return $self->{'tag'};
 }
 
+=head1 METHODS (Value Added)
+
 =head2 fix
 
 Returns either 1 or 0 based upon if the GPS point is from a valid fix or not.
 
   print $obj->fix, "\n";
+
+At a minimum this methods requires mode to be set.
 
 =cut
 
@@ -353,12 +419,34 @@ sub fix {
 
 }
 
+=head2 datetime
+
+Returns a L<DateTime> object from time
+
+  my $dt=$point->datetime;
+
+At a minimum this methods requires time to be set.
+
+=cut
+
+sub datetime {
+  my $self=shift;
+  eval 'use DateTime';
+  if ($@) {
+    die("Error: The datetime method requires DateTime");
+  } else {
+    return DateTime->from_epoch(epoch=>$self->time); 
+  }
+}
+
 =head2 latlon, latlong
 
 Returns Latitude, Longitude as an array in array context and as a space joined string in scalar context
 
   my @latlon=$point->latlon;
   my $latlon=$point->latlon;
+
+At a minimum this methods requires lat and lon to be set.
 
 =cut
 
@@ -377,6 +465,8 @@ Returns ECEF coordinates if L<Geo::ECEF> is available.
   my ($x,$y,$z) = $point->ecef;
   my @xyz       = $point->ecef;
   my $xyz_aref  = $point->ecef; #if Geo::ECEF->VERSION >= 0.08
+
+At a minimum this methods requires lat and lon to be set. (alt of 0 is assumed by Geo::ECEF->ecef).
 
 =cut
 
@@ -397,6 +487,8 @@ Returns a L<Geo::Point> Object in the WGS-84 projection.
 
   my $GeoPointObject = $point->GeoPoint;
 
+At a minimum this methods requires lat and lon to be set.
+
 =cut
 
 sub GeoPoint {
@@ -411,48 +503,28 @@ sub GeoPoint {
 
 =head2 distance
 
-Returns distance. The argument can be a L<GPS::Point>, L<Geo::Point>, {lat=>$lat,lon=>$lon} (can be blessed), [$lat, $lon] (can be blessed) or a Lat, Lon scalar pair.
+Returns distance. The argument can be any valid argument of newMulti constructor.
 
   my ($faz, $baz, $dist) = $point->distance($pt2); #Array context
   my $dist = $point->distance($lat, $lon);  #if Geo::Inverse->VERSION >=0.05 
+
+At a minimum this methods requires lat and lon to be set.
 
 =cut
 
 sub distance {
   my $self=shift;
-  my $pt2=shift();
-  my $lat1=$self->lat;
-  my $lon1=$self->lon;
-  my $lat2;
-  my $lon2;
-  #printf "Ref %s, Type %s\n", ref($pt2), reftype($pt2);
-  if (!ref($pt2)) {
-    $lat2=$pt2;
-    $lon2=shift();
-  } elsif (ref($pt2) eq "Geo::Point") {
-    $lat2=$pt2->latitude;
-    $lon2=$pt2->longitude;
-  } elsif (ref($pt2) eq "GPS::Point") {
-    $lat2=$pt2->lat;
-    $lon2=$pt2->lon;
-  } elsif (reftype($pt2) eq "HASH") {
-    $lat2=$pt2->{'lat'}||$pt2->{'latitude'};
-    $lon2=$pt2->{'lon'}||$pt2->{'long'}||$pt2->{'longitude'};
-  } elsif (reftype($pt2) eq "ARRAY") {
-    $lat2=$pt2->[0];
-    $lon2=$pt2->[1];
-  }
-  #printf "Lat %s, Lon %s\n", $lat2, $lon2;
-  if (defined($lat2) && length($lat2) and defined($lon2) && length($lon2)) {
+  my $point=$self->newMulti(@_);
+  if (defined $point) {
     eval 'use Geo::Inverse';
     if ($@) {
       die("Error: The distance method requires Geo::Inverse");
     } else {
       my $gi=Geo::Inverse->new();
-      return $gi->inverse($lat1,$lon1,$lat2,$lon2);
+      return $gi->inverse($self->latlon, $point->latlon);
     }
   } else {
-    die(qq{Error: Cannot calculate distance with "$lat2" and "$lon2".});
+    die(qq{Error: Could not create point from parameters.});
   }
 }
 
@@ -460,28 +532,30 @@ sub distance {
 
 Returns a point object at the predicted location in time seconds assuming constant velocity. Using L<Geo::Forward> calculation.
 
- my $new_point=$point->track($seconds);
+  my $new_point=$point->track($seconds);
+
+At a minimum this methods requires lat and lon to be set. It might be very usefull to have speed, heading and time set although they all default to zero.
 
 =cut
 
 sub track {
-  my $self=shift();
-  my $time=shift()||0;
+  my $self=shift;
+  my $seconds=shift||0;
   eval 'use Geo::Forward';
   if ($@) {
     die("Error: The track method requires Geo::Forward");
   } else {
     my $gf=Geo::Forward->new;
-    my $dist=($self->speed||0) * $time;   #meters
+    my $dist=($self->speed||0) * $seconds;   #meters
     my ($lat1,$lon1,$faz)=($self->lat, $self->lon, $self->heading||0);
     my ($lat2,$lon2,$baz) = $gf->forward($lat1,$lon1,$faz,$dist);
 
-    my $p2=GPS::Point->new($self);
-    $p2->lat($lat2);
-    $p2->lon($lon2);
-    $p2->time($self->time + $time);
-    $p2->heading($baz-180);
-    return $p2;
+    my $point=GPS::Point->new(%$self);
+    $point->lat($lat2);
+    $point->lon($lon2);
+    $point->time(($self->time||0) + $seconds);
+    #$point->heading($baz-180);
+    return $point;
   }
 }
 
@@ -492,9 +566,11 @@ sub q2u {
 
 =head1 BUGS
 
+Send to GPSD-DEV or GEO-PERL email lists
+
 =head1 SUPPORT
 
-Try GPSD-DEV email list
+Try GPSD-DEV or GEO-PERL email lists
 
 =head1 AUTHOR
 
@@ -515,7 +591,7 @@ LICENSE file included with this module.
 
 =head1 SEE ALSO
 
-L<Geo::Point>, L<Net::GPSD>, L<Net::GPSD::Point>, L<Geo::ECEF>, L<Geo::Functions>, L<Geo::Inverse>, L<Geo::Distance>, L<Geo::Ellipsoids>, L<Geo::Forward>
+L<Geo::Point>, L<Net::GPSD>, L<Net::GPSD::Point>, L<Geo::ECEF>, L<Geo::Functions>, L<Geo::Forward>, L<Geo::Inverse>, L<Geo::Distance>, L<Geo::Ellipsoids>
 
 =cut
 

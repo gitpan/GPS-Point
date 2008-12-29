@@ -8,4 +8,6 @@ README
 t/001_load.t
 t/002_init.t
 t/003_gpsd.t
+t/004_copy.t
+t/005_track.t
 Todo
