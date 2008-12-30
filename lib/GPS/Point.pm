@@ -2,7 +2,7 @@ package GPS::Point;
 use strict;
 use Scalar::Util qw{reftype};
 
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
 =head1 NAME
 
@@ -86,12 +86,16 @@ sub newGPSD {
 
 Constructs a GPS::Point from a Multitude of arguments. Arguments can be a L<GPS::Point>, L<Geo::Point>, {lat=>$lat,lon=>$lon} (can be blessed), [$lat, $lon] (can be blessed) or a ($lat, $lon) pair. 
 
-  my $point=GPS::Point->newMulti($lat, $lon);     #only support lat and lon
-  my $point=GPS::Point->newMulti([$lat, $lon]);   #only support lat and lon
-  my $point=GPS::Point->newMulti({lat=>$lat, lon=>$lon});
-  my $point=GPS::Point->newMulti({latitude=>$lat, longtude=>$lon});
+  my $point=GPS::Point->newMulti( $lat, $lon, $alt ); #supports lat, lon and alt
+  my $point=GPS::Point->newMulti([$lat, $lon, $alt]); #supports lat, lon and alt
+  my $point=GPS::Point->newMulti({lat=>$lat, lon=>$lon, ...});
   my $point=GPS::Point->newMulti(GPS::Point->new(lat=>$lat, lon=>$lon));
   my $point=GPS::Point->newMulti(Geo::Point->new(lat=>$lat, long=>$lon, proj=>'wgs84'));
+  my $point=GPS::Point->newMulti({latitude=>$lat, longtude=>$lon});
+
+Note: Hash reference context supports the following keys lat, lon, alt, latitude, longitude, long, altitude, elevation, hae, elev.
+
+Note: Units are always decimal degrees for latitude and longitude and meters above the WGS-84 ellipsoid for altitude.
 
 =cut
 
@@ -144,6 +148,7 @@ sub initializeMulti {
   if (!ref($point)) {
     $self->{'lat'}=$point;
     $self->{'lon'}=shift();
+    $self->{'alt'}=shift()||0;
   } elsif (ref($point) eq "Geo::Point") {
     $point=$point->in('wgs84') unless $point->proj eq "wgs84";
     $self->{'lat'}=$point->latitude;
@@ -169,18 +174,22 @@ sub initializeMulti {
   } elsif (reftype($point) eq "HASH") {
     %$self=%$point;
     $self->{'lat'}=$point->{'lat'}||$point->{'latitude'};
-    $self->{'lon'}=$point->{'lon'}||$point->{'long'}||$point->{'longitude'};
     delete $self->{'latitude'} if exists $self->{'latitude'};
+    $self->{'lon'}=$point->{'lon'}||$point->{'long'}||$point->{'longitude'};
     delete $self->{'longitude'} if exists $self->{'longitude'};
     delete $self->{'long'} if exists $self->{'long'};
+    $self->{'alt'}=$point->{'alt'}||$point->{'altitude'}||
+                   $point->{'elevation'}||$point->{'hae'}||$point->{'elev'};
+    delete $self->{'altitude'} if exists $self->{'altitude'};
+    delete $self->{'elevation'} if exists $self->{'elevation'};
   } elsif (reftype($point) eq "ARRAY") {
     $self->{'lat'}=$point->[0];
     $self->{'lon'}=$point->[1];
+    $self->{'alt'}=$point->[2]||0;
   }
-  return $self;
 }
 
-=head1 METHODS (BASE)
+=head1 METHODS (Base)
 
 =head2 time
 
@@ -229,7 +238,7 @@ sub lon {
   return $self->{'lon'};
 }
 
-=head2 alt, altitude
+=head2 alt, altitude, hae, elevation
 
 Sets or returns Altitude (float, meters) 
 
@@ -238,6 +247,8 @@ Sets or returns Altitude (float, meters)
 =cut
 
 *altitude=\&alt;
+*hae=\&alt;
+*elevation=\&alt;
 
 sub alt {
   my $self = shift();
@@ -409,14 +420,17 @@ Returns either 1 or 0 based upon if the GPS point is from a valid fix or not.
 
   print $obj->fix, "\n";
 
-At a minimum this methods requires mode to be set.
+At a minimum this method requires mode to be set.
 
 =cut
 
 sub fix {
-  my $self = shift();
-  return $self->mode > 1 ? 1 : 0;
-
+  my $self=shift;
+  if (defined($self->mode) and $self->mode > 1) {
+    return 1;
+  } else {
+    return 0;
+  }
 }
 
 =head2 datetime
@@ -425,7 +439,7 @@ Returns a L<DateTime> object from time
 
   my $dt=$point->datetime;
 
-At a minimum this methods requires time to be set.
+At a minimum this method requires time to be set.
 
 =cut
 
@@ -446,7 +460,7 @@ Returns Latitude, Longitude as an array in array context and as a space joined s
   my @latlon=$point->latlon;
   my $latlon=$point->latlon;
 
-At a minimum this methods requires lat and lon to be set.
+At a minimum this method requires lat and lon to be set.
 
 =cut
 
@@ -458,15 +472,41 @@ sub latlon {
   return wantarray ? @latlon : join(" ", @latlon);
 }
 
+=head2 setAltitude
+
+Sets altitude from USGS web service and then returns the GPS::Point object.  This method is a wrapper around L<Geo::WebService::Elevation::USGS>.
+
+  my $point=GPS::Point->new(lat=>$lat, lon=>$lon)->setAltitude;
+  $point->setAltitude;
+  my $alt=$point->alt;
+
+At a minimum this method requires lat and lon to be set and alt to be undef.
+
+=cut
+
+sub setAltitude {
+  my $self=shift;
+  unless (defined $self->alt) {
+    eval 'use Geo::WebService::Elevation::USGS';
+    if ($@) {
+      die("Error: The setAltitude method requires Geo::WebService::Elevation::USGS");
+    } else {
+      my $eq=Geo::WebService::Elevation::USGS->new(units=>"METERS", croak=>0);
+      $self->alt($eq->getElevation($self)->{'Elevation'});
+    }
+  }
+  return $self;
+}
+
 =head2 ecef
 
-Returns ECEF coordinates if L<Geo::ECEF> is available.
+Returns ECEF coordinates. This method is a warpper around L<Geo::ECEF>.
 
   my ($x,$y,$z) = $point->ecef;
   my @xyz       = $point->ecef;
   my $xyz_aref  = $point->ecef; #if Geo::ECEF->VERSION >= 0.08
 
-At a minimum this methods requires lat and lon to be set. (alt of 0 is assumed by Geo::ECEF->ecef).
+At a minimum this method requires lat and lon to be set. (alt of 0 is assumed by Geo::ECEF->ecef).
 
 =cut
 
@@ -487,7 +527,7 @@ Returns a L<Geo::Point> Object in the WGS-84 projection.
 
   my $GeoPointObject = $point->GeoPoint;
 
-At a minimum this methods requires lat and lon to be set.
+At a minimum this method requires lat and lon to be set.
 
 =cut
 
@@ -503,24 +543,25 @@ sub GeoPoint {
 
 =head2 distance
 
-Returns distance. The argument can be any valid argument of newMulti constructor.
+Returns distance in meters between the object point and the argument point. The argument can be any valid argument of newMulti constructor.  This method is a wrapper around Geo::Inverse.
 
   my ($faz, $baz, $dist) = $point->distance($pt2); #Array context
   my $dist = $point->distance($lat, $lon);  #if Geo::Inverse->VERSION >=0.05 
 
-At a minimum this methods requires lat and lon to be set.
+At a minimum this method requires lat and lon to be set.
 
 =cut
 
 sub distance {
   my $self=shift;
-  my $point=$self->newMulti(@_);
+  my $point=$_[0];
+  $point=GPS::Point->newMulti(@_) unless ref($point) eq "GPS::Point";
   if (defined $point) {
     eval 'use Geo::Inverse';
     if ($@) {
       die("Error: The distance method requires Geo::Inverse");
     } else {
-      my $gi=Geo::Inverse->new();
+      my $gi=Geo::Inverse->new;
       return $gi->inverse($self->latlon, $point->latlon);
     }
   } else {
@@ -534,7 +575,7 @@ Returns a point object at the predicted location in time seconds assuming consta
 
   my $new_point=$point->track($seconds);
 
-At a minimum this methods requires lat and lon to be set. It might be very usefull to have speed, heading and time set although they all default to zero.
+At a minimum this method requires lat and lon to be set. It might be very usefull to have speed, heading and time set although they all default to zero.
 
 =cut
 
@@ -591,7 +632,7 @@ LICENSE file included with this module.
 
 =head1 SEE ALSO
 
-L<Geo::Point>, L<Net::GPSD>, L<Net::GPSD::Point>, L<Geo::ECEF>, L<Geo::Functions>, L<Geo::Forward>, L<Geo::Inverse>, L<Geo::Distance>, L<Geo::Ellipsoids>
+L<Geo::Point>, L<Net::GPSD>, L<Net::GPSD::Point>, L<Geo::ECEF>, L<Geo::Functions>, L<Geo::Forward>, L<Geo::Inverse>, L<Geo::Distance>, L<Geo::Ellipsoids>, L<Geo::WebService::Elevation::USGS>, L<DateTime>
 
 =cut
 

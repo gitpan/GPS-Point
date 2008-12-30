@@ -1,5 +1,17 @@
 Revision history for Perl module GPS::Point
 
+0.11 2008-12-29
+    - Documentation
+    - Organized tests
+    - Added setAltitude method
+0.10 2008-12-28
+    - Fixed time ||/+ precedent bug in track method in version 0.09
+    - Added copy and track tests
+    - Updated documentation
+    - Exposed point capabilities from distance method as newMulti constructor
+    - Added datetime method
+0.09 2008-12-27
+    - Added track method (ported from Net::GPSD::Point)
 0.08 2008-07-28
     - Require Geo::Inverse to pass tests
     - Changed license to BSD from perl
