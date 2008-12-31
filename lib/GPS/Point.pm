@@ -2,7 +2,7 @@ package GPS::Point;
 use strict;
 use Scalar::Util qw{reftype};
 
-our $VERSION = '0.11';
+our $VERSION = '0.12';
 
 =head1 NAME
 
@@ -492,7 +492,8 @@ sub setAltitude {
       die("Error: The setAltitude method requires Geo::WebService::Elevation::USGS");
     } else {
       my $eq=Geo::WebService::Elevation::USGS->new(units=>"METERS", croak=>0);
-      $self->alt($eq->getElevation($self)->{'Elevation'});
+      my $return=$eq->getElevation($self); #Assume this is HAE WGS-84
+      $self->alt($return->{'Elevation'}) if ref($return) eq "HASH";
     }
   }
   return $self;
