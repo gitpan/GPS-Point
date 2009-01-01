@@ -18,7 +18,7 @@ is($pt1->lon, -77.037684, 'pt1->lon');
 
 SKIP: {
   eval { require Geo::WebService::Elevation::USGS };
-  skip "Geo::WebService::Elevation::USGS not installed", 8 if $@;
+  skip "Geo::WebService::Elevation::USGS not installed", 23 if $@;
 
   is($pt1->alt, undef, 'pt1->alt');
   isa_ok ($pt1->setAltitude, 'GPS::Point');

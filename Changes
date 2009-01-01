@@ -1,5 +1,7 @@
 Revision history for Perl module GPS::Point
 
+0.13 2008-12-31
+    - Updated SKIP in test
 0.12 2008-12-30
     - Updated setAltitude method to handle undef return
     - Added setAltitude tests

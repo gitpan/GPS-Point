@@ -2,7 +2,7 @@ package GPS::Point;
 use strict;
 use Scalar::Util qw{reftype};
 
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 =head1 NAME
 
