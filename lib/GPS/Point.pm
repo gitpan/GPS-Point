@@ -2,7 +2,7 @@ package GPS::Point;
 use strict;
 use Scalar::Util qw{reftype};
 
-our $VERSION = '0.13';
+our $VERSION = '0.14';
 
 =head1 NAME
 
@@ -574,7 +574,8 @@ sub distance {
 
 Returns a point object at the predicted location in time seconds assuming constant velocity. Using L<Geo::Forward> calculation.
 
-  my $new_point=$point->track($seconds);
+  my $new_point=$point->track($seconds); #default $point->heading
+  my $new_point=$point->track($seconds => $heading);
 
 At a minimum this method requires lat and lon to be set. It might be very usefull to have speed, heading and time set although they all default to zero.
 
@@ -582,21 +583,41 @@ At a minimum this method requires lat and lon to be set. It might be very useful
 
 sub track {
   my $self=shift;
-  my $seconds=shift||0;
+  my $seconds=shift||0;        #seconds
+  my $heading=shift;           #degrees
+  $heading=$self->heading || 0 unless defined $heading; #support 0 degrees passed
+  my $speed=$self->speed || 0; #m/s
+  my $dist=$speed * $seconds;  #meters
+  my $point=$self->forward($dist => $heading);
+  $point->time(($self->time||0) + $seconds);
+  return $point;
+}
+
+=head2 forward
+
+Returns a point object at the distance and heading using L<Geo::Forward> calculations.
+
+  my $point=$point->forward($dist);             #default $point->heading
+  my $point=$point->forward($dist => $heading); #meters => degrees
+
+At a minimum this method requires lat and lon to be set. It might be usefull to have heading set although the default is zero.
+
+=cut
+
+sub forward {
+  my $self=shift;
+  my $dist=shift || 0; #meters
+  my $faz=shift;       #degrees
+  $faz=$self->heading || 0 unless defined $faz;
   eval 'use Geo::Forward';
   if ($@) {
     die("Error: The track method requires Geo::Forward");
   } else {
     my $gf=Geo::Forward->new;
-    my $dist=($self->speed||0) * $seconds;   #meters
-    my ($lat1,$lon1,$faz)=($self->lat, $self->lon, $self->heading||0);
-    my ($lat2,$lon2,$baz) = $gf->forward($lat1,$lon1,$faz,$dist);
-
+    my ($lat2,$lon2,$baz) = $gf->forward($self->latlon, $faz, $dist);
     my $point=GPS::Point->new(%$self);
     $point->lat($lat2);
     $point->lon($lon2);
-    $point->time(($self->time||0) + $seconds);
-    #$point->heading($baz-180);
     return $point;
   }
 }

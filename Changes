@@ -1,42 +1,48 @@
 Revision history for Perl module GPS::Point
 
+0.14 2009-11-26
+  - Broke out forward method
+  - Re-wrote track method as a wrapper around forward method
+  - Added tests for track method
+  - Added tests for forward method
+  - Updated SKIP in tests
 0.13 2008-12-31
-    - Updated SKIP in test
+  - Updated SKIP in test
 0.12 2008-12-30
-    - Updated setAltitude method to handle undef return
-    - Added setAltitude tests
+  - Updated setAltitude method to handle undef return
+  - Added setAltitude tests
 0.11 2008-12-29
-    - Documentation
-    - Organized tests
-    - Added setAltitude method
+  - Documentation
+  - Organized tests
+  - Added setAltitude method
 0.10 2008-12-28
-    - Fixed time ||/+ precedent bug in track method in version 0.09
-    - Added copy and track tests
-    - Updated documentation
-    - Exposed point capabilities from distance method as newMulti constructor
-    - Added datetime method
+  - Fixed time ||/+ precedent bug in track method in version 0.09
+  - Added copy and track tests
+  - Updated documentation
+  - Exposed point capabilities from distance method as newMulti constructor
+  - Added datetime method
 0.09 2008-12-27
-    - Added track method (ported from Net::GPSD::Point)
+  - Added track method (ported from Net::GPSD::Point)
 0.08 2008-07-28
-    - Require Geo::Inverse to pass tests
-    - Changed license to BSD from perl
-    - Fixed test issue
+  - Require Geo::Inverse to pass tests
+  - Changed license to BSD from perl
+  - Fixed test issue
 0.07 2008-07-27
-    - updated distance method to support multiple point formats.
+  - updated distance method to support multiple point formats.
 0.06 Apr 08 2007
-    - Documentation
+  - Documentation
 0.05 Apr 07 2007
-    - Documentation
-    - Added method aliases e.g long, latitude...
-    - Added fix method
+  - Documentation
+  - Added method aliases e.g long, latitude...
+  - Added fix method
 0.04 Apr 07 2007
-    - test floats with Test::Number::Delta
-    - added skip tests
-    - newGPSD constructor
-    - documentation
+  - test floats with Test::Number::Delta
+  - added skip tests
+  - newGPSD constructor
+  - documentation
 0.03 Apr 06 2007
-    - Added ecef, distance, GeoPoint methods
+  - Added ecef, distance, GeoPoint methods
 0.02 Mar 29 2007
-    - First Version on CPAN
+  - First Version on CPAN
 0.01 Mon Feb 26 21:51:39 2007
-    - original version; created by ExtUtils::ModuleMaker 0.47
+  - original version; created by ExtUtils::ModuleMaker 0.47
