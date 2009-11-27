@@ -1,5 +1,7 @@
 Revision history for Perl module GPS::Point
 
+0.15 2009-11-27
+  - Fixed bug where a 0 lat, lon, or alt returns as undef in initializeMulti
 0.14 2009-11-26
   - Broke out forward method
   - Re-wrote track method as a wrapper around forward method

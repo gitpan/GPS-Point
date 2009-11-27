@@ -2,7 +2,7 @@ package GPS::Point;
 use strict;
 use Scalar::Util qw{reftype};
 
-our $VERSION = '0.14';
+our $VERSION = '0.15';
 
 =head1 NAME
 
@@ -146,20 +146,20 @@ sub initializeMulti {
   my $self=shift;
   my $point=shift;
   if (!ref($point)) {
-    $self->{'lat'}=$point;
-    $self->{'lon'}=shift();
-    $self->{'alt'}=shift()||0;
+    $self->{'lat'}=$point                          ||0;
+    $self->{'lon'}=shift                           ||0;
+    $self->{'alt'}=shift                           ||0;
   } elsif (ref($point) eq "Geo::Point") {
     $point=$point->in('wgs84') unless $point->proj eq "wgs84";
-    $self->{'lat'}=$point->latitude;
-    $self->{'lon'}=$point->longitude;
+    $self->{'lat'}=$point->latitude                ||0;
+    $self->{'lon'}=$point->longitude               ||0;
   } elsif (ref($point) eq "GPS::Point") {
     %$self=%$point;
   } elsif (ref($point) eq "Net::GPSD::Point") {
     $self->{'time'}=$point->time;
-    $self->{'lat'}=$point->latitude;
-    $self->{'lon'}=$point->longitude;
-    $self->{'alt'}=$point->altitude;
+    $self->{'lat'}=$point->latitude                ||0;
+    $self->{'lon'}=$point->longitude               ||0;
+    $self->{'alt'}=$point->altitude                ||0;
     $self->{'speed'}=$point->speed;
     $self->{'heading'}=$point->heading;
     $self->{'climb'}=$point->climb;
@@ -173,19 +173,20 @@ sub initializeMulti {
     $self->{'tag'}=$point->tag;
   } elsif (reftype($point) eq "HASH") {
     %$self=%$point;
-    $self->{'lat'}=$point->{'lat'}||$point->{'latitude'};
-    delete $self->{'latitude'} if exists $self->{'latitude'};
-    $self->{'lon'}=$point->{'lon'}||$point->{'long'}||$point->{'longitude'};
-    delete $self->{'longitude'} if exists $self->{'longitude'};
-    delete $self->{'long'} if exists $self->{'long'};
-    $self->{'alt'}=$point->{'alt'}||$point->{'altitude'}||
-                   $point->{'elevation'}||$point->{'hae'}||$point->{'elev'};
-    delete $self->{'altitude'} if exists $self->{'altitude'};
-    delete $self->{'elevation'} if exists $self->{'elevation'};
+    $self->{'lat'}=$point->{'lat'}                 ||
+                     delete($point->{'latitude'})  ||0;
+    $self->{'lon'}=$point->{'lon'}                 ||
+                     delete($point->{'long'})      ||
+                     delete($point->{'longitude'}) ||0;
+    $self->{'alt'}=$point->{'alt'}                 ||
+                     delete($point->{'altitude'})  ||
+                     delete($point->{'elevation'}) ||
+                     delete($point->{'hae'})       ||
+                     delete($point->{'elev'})      ||0;
   } elsif (reftype($point) eq "ARRAY") {
-    $self->{'lat'}=$point->[0];
-    $self->{'lon'}=$point->[1];
-    $self->{'alt'}=$point->[2]||0;
+    $self->{'lat'}=$point->[0]                     ||0;
+    $self->{'lon'}=$point->[1]                     ||0;
+    $self->{'alt'}=$point->[2]                     ||0;
   }
 }
 
@@ -216,8 +217,8 @@ Sets or returns Latitude (float, degrees)
 *latitude=\&lat;
 
 sub lat {
-  my $self = shift();
-  $self->{'lat'}=shift() if @_;
+  my $self=shift;
+  $self->{'lat'}=shift if @_;
   return $self->{'lat'};
 }
 
