@@ -1,6 +1,6 @@
 # -*- perl -*-
 
-use Test::More tests => 30;
+use Test::More tests => 35;
 use Test::Number::Delta;
 
 BEGIN { use_ok( 'GPS::Point' ); }
@@ -28,7 +28,7 @@ is($latlon[1], -77, "latlon method array context");
 
 SKIP: {
   eval { require Geo::ECEF };
-  skip "Geo::ECEF not installed", 3 if $@;
+  skip "Geo::ECEF not installed", 4 if $@;
 
   ok(1, "Running tests that require Geo::ECEF");
 
@@ -82,4 +82,18 @@ SKIP: {
   my $pt3=$pt1->track(140.777169524386);
   delta_ok($pt3->lat, 39.1, 'track->lat');
   delta_ok($pt3->lon, -77.1, 'track->lon');
+}
+
+my $pt4=GPS::Point->new(time=>"1260855713");
+is($pt4->time, "1260855713", "time method" );
+
+SKIP: {
+  eval { require DateTime };
+  skip "DateTime not installed", 4 if $@;
+
+  ok(1, "Running tests that require DateTime");
+
+  isa_ok($pt4->datetime,       "DateTime",            "datetime method" );
+  is($pt4->datetime->datetime, "2009-12-15T05:41:53", "datetime method" );
+  is($pt4->datetime->epoch,    "1260855713",          "datetime method" );
 }

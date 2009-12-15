@@ -10,6 +10,7 @@ WriteMakefile(
                    'Test::More'          => 0.44,
                    'Test::Number::Delta' => 0,
                    'strict'              => 0,
+                   'warnings'            => 0,
                    'Scalar::Util'        => 1.02,
                   },
 );

@@ -1,8 +1,9 @@
 package GPS::Point;
 use strict;
+use warnings;
 use Scalar::Util qw{reftype};
 
-our $VERSION = '0.15';
+our $VERSION = '0.16';
 
 =head1 NAME
 
@@ -108,6 +109,10 @@ sub newMulti {
   return $self;
 }
 
+=head2 initialize, initializeGPSD, initializeMulti
+
+=cut
+
 sub initialize {
   my $self = shift();
   %$self=@_;
@@ -122,7 +127,7 @@ sub initializeGPSD {
   foreach (@line) { #I pull the last one if O=?,O=?,...
     my @rpt=split(/=/, $_);
     if ($rpt[0] eq 'O') {
-      my @data=map {&q2u($_)} split(/\s+/, $rpt[1]);
+      my @data=map {&_q2u($_)} split(/\s+/, $rpt[1]);
       %$self=(tag         => $data[ 0],
               time        => $data[ 1],
               etime       => $data[ 2],
@@ -623,7 +628,7 @@ sub forward {
   }
 }
 
-sub q2u {
+sub _q2u {
   my $a=shift();
   return $a eq '?' ? undef() : $a;
 }
