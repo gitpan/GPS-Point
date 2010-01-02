@@ -1,5 +1,7 @@
 Revision history for Perl module GPS::Point
 
+0.17 2010-01-02
+  - Win32 Test fail becuse they cannot tell difference between Geo::ECEF and geo::ecef.  "geo" is a depricated name space in favor of Geo.
 0.16 2009-12-15
   - RT 52364 fixed test
   - Added test for datetime method

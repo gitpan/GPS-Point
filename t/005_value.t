@@ -1,6 +1,6 @@
 # -*- perl -*-
 
-use Test::More tests => 35;
+use Test::More tests => 36;
 use Test::Number::Delta;
 
 BEGIN { use_ok( 'GPS::Point' ); }
@@ -28,7 +28,12 @@ is($latlon[1], -77, "latlon method array context");
 
 SKIP: {
   eval { require Geo::ECEF };
-  skip "Geo::ECEF not installed", 4 if $@;
+  skip "Geo::ECEF not installed", 5 if $@;
+
+  ok(1, "We have Geo::ECEF but is it geo::ecef on Win32?");
+
+  my $sub=Geo::ECEF->can("new");
+  skip "We have geo::ecef but need Geo::ECEF on Win32", 4 unless $sub;
 
   ok(1, "Running tests that require Geo::ECEF");
 
