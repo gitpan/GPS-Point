@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Scalar::Util qw{reftype};
 
-our $VERSION = '0.17';
+our $VERSION = '0.18';
 
 =head1 NAME
 
@@ -518,14 +518,12 @@ At a minimum this method requires lat and lon to be set. (alt of 0 is assumed by
 =cut
 
 sub ecef {
-  my $self = shift();
+  my $self=shift;
   eval 'use Geo::ECEF';
-  if ($@) {
-    die("Error: The ecef method requires Geo::ECEF");
-  } else {
-    my $obj=Geo::ECEF->new();
-    return $obj->ecef($self->lat, $self->lat, $self->alt);
-  }
+  die("Error: The ecef method requires Geo::ECEF") if $@;
+  die("Error: The found geo::ecef not Geo::ECEF.") unless Geo::ECEF->can("new");
+  my $obj=Geo::ECEF->new;
+  return $obj->ecef($self->lat, $self->lat, $self->alt);
 }
 
 =head2 GeoPoint
@@ -643,20 +641,19 @@ Try GPSD-DEV or GEO-PERL email lists
 
 =head1 AUTHOR
 
-    Michael R. Davis
-    CPAN ID: MRDVT
-    DavisNetworks.com
-    account=>perl,tld=>com,domain=>michaelrdavis
-    http://www.davisnetworks.com/
+  Michael R. Davis
+  CPAN ID: MRDVT
+  DavisNetworks.com
+  account=>perl,tld=>com,domain=>michaelrdavis
+  http://www.davisnetworks.com/
 
 =head1 COPYRIGHT
 
 This program is free software licensed under the...
 
-	The BSD License
+  The BSD License
 
-The full text of the license can be found in the
-LICENSE file included with this module.
+The full text of the license can be found in the LICENSE file included with this module.
 
 =head1 SEE ALSO
 

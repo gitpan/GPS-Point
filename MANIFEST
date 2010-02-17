@@ -10,6 +10,5 @@ t/002_newcopy.t
 t/003_newGPSD.t
 t/004_newMulti.t
 t/005_value.t
-t/006_setAltitude.t
 scripts/GPS-Point-Example.pl
 Todo
