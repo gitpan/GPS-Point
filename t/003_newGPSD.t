@@ -1,5 +1,7 @@
 # -*- perl -*-
 
+use strict;
+use warnings;
 use Test::More tests => 23;
 
 BEGIN { use_ok( 'GPS::Point' ); }

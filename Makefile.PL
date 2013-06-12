@@ -8,9 +8,6 @@ WriteMakefile(
   PREREQ_PM    => {
                    'Test::Simple'        => 0.44,
                    'Test::Number::Delta' => 0,
-                   'strict'              => 0,
-                   'warnings'            => 0,
                    'Scalar::Util'        => 1.02,
-                   #'Geo::ECEF'           => 1.10, #required Win32 test
                   },
 );

@@ -1,7 +1,7 @@
 # -*- perl -*-
 
-# 002_newMulti.t - constructor
-
+use strict;
+use warnings;
 use Test::More tests => 29;
 
 BEGIN { use_ok( 'GPS::Point' ); }

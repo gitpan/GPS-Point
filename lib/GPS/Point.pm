@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Scalar::Util qw{reftype};
 
-our $VERSION = '0.18';
+our $VERSION = '0.20';
 
 =head1 NAME
 
@@ -33,7 +33,7 @@ GPS::Point - Provides an object interface for a GPS point.
 
 =head1 DESCRIPTION
 
-This is a re-write of L<Net::GPSD::Point> with a goal of being more re-usable.
+This is a re-write of L<Net::GPSD::Point> with the goal of being more re-usable.
 
 GPS::Point - Provides an object interface for a GPS fix (e.g. Position, Velocity and Time).
 
@@ -51,7 +51,7 @@ GPS::Point - Provides an object interface for a GPS fix (e.g. Position, Velocity
 
   my $obj=GPS::Point->newNMEA($NMEA_lines); #e.g. GGA+GSA+RMC
 
-=head1 CONSTRUCTOR
+=head1 CONSTRUCTORS
 
 =head2 new
 
@@ -71,6 +71,8 @@ sub new {
 =head2 newGPSD
 
   my $obj=GPS::Point->newGPSD($GPSD_O_line);#e.g. GPSD,O=....
+
+Note: GPSD protocol 2 is soon to be defunct.
 
 =cut
 
@@ -227,7 +229,7 @@ sub lat {
   return $self->{'lat'};
 }
 
-=head2 lon, long or longitude
+=head2 lon, long, longitude
 
 Sets or returns Longitude (float, degrees)
 
@@ -507,7 +509,7 @@ sub setAltitude {
 
 =head2 ecef
 
-Returns ECEF coordinates. This method is a warpper around L<Geo::ECEF>.
+Returns ECEF coordinates. This method is a wrapper around L<Geo::ECEF>.
 
   my ($x,$y,$z) = $point->ecef;
   my @xyz       = $point->ecef;
@@ -581,7 +583,7 @@ Returns a point object at the predicted location in time seconds assuming consta
   my $new_point=$point->track($seconds); #default $point->heading
   my $new_point=$point->track($seconds => $heading);
 
-At a minimum this method requires lat and lon to be set. It might be very usefull to have speed, heading and time set although they all default to zero.
+At a minimum this method requires lat and lon to be set. It might be very useful to have speed, heading and time set although they all default to zero.
 
 =cut
 
@@ -604,7 +606,7 @@ Returns a point object at the distance and heading using L<Geo::Forward> calcula
   my $point=$point->forward($dist);             #default $point->heading
   my $point=$point->forward($dist => $heading); #meters => degrees
 
-At a minimum this method requires lat and lon to be set. It might be usefull to have heading set although the default is zero.
+At a minimum this method requires lat and lon to be set. It might be useful to have heading set although the default is zero.
 
 =cut
 
@@ -626,6 +628,29 @@ sub forward {
   }
 }
 
+=head2 buffer
+
+Returns a list of L<GPS::Point> objects equidistant from the current object location.
+
+  my @buffer=$point->buffer($radius_meters, $sections); #returns (GPS::Point, GPS::Point, ...)
+  my $buffer=$point->buffer($radius_meters, $sections); #returns [GPS::Point, GPS::Point, ...]
+
+=cut
+
+sub buffer {
+  my $self=shift;
+  my $radius=shift; #meters
+  my $sections=shift || 60; #60 sections = 61 verticies
+  my @buffer=();
+  my $arc=360/$sections; #not zero!
+  foreach my $step (0 .. $sections) {
+    my $angle=$arc * $step;
+
+    push @buffer, $self->forward($radius => $angle);
+  }
+  return wantarray ? @buffer : \@buffer;
+}
+
 sub _q2u {
   my $a=shift();
   return $a eq '?' ? undef() : $a;
@@ -633,11 +658,11 @@ sub _q2u {
 
 =head1 BUGS
 
-Send to GPSD-DEV or GEO-PERL email lists
+Please log on RT and send email to GPSD-DEV or GEO-PERL email lists.
 
 =head1 SUPPORT
 
-Try GPSD-DEV or GEO-PERL email lists
+DavisNetworks.com supports all Perl applications including this package.
 
 =head1 AUTHOR
 
